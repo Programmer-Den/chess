@@ -1,0 +1,11 @@
+{
+  "author": "Programmer-Den",
+  "name": "chess",
+  "main": "index.js",
+  "dependencies": {
+    "prompt-sync": "^4.2.0",
+    "prompt-sync-history": "^1.0.1"
+  },
+  "devDependencies": { "jest": "^29.5.0" },
+  "scripts": { "test": "jest" }
+}
