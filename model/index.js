@@ -17,6 +17,7 @@ function turn() {
     move('White');          if (checkmate) break;
     move('Black')
   }
+  
   let winner = Object.values(board.currentBoard).includes('♚') ? 'White' : 'Black';
 
   console.log(`${winner} win! Congratulations.`);
@@ -24,9 +25,8 @@ function turn() {
 
 function defineChessmanKind(chessman) {
   switch (chessman) {
-    case '♚':
-    case '♔':
-      return 'King';
+    case '♚': return 'White King';
+    case '♔': return 'Black King';
 
     case '♛':
     case '♕':
@@ -44,27 +44,29 @@ function defineChessmanKind(chessman) {
     case '♘':
       return 'Knight';
     
-    case '♟':  return 'whitePawn'; 
-    case '♙':  return 'blackPawn'
+    case '♟': return 'White Pawn'; 
+    case '♙': return 'Black Pawn'
   }
 }
 function permitMove(chessmanKind, FROM_cell, ONTO_cell) {
   switch (chessmanKind) {
-    case 'King':     King()(FROM_cell, ONTO_cell); break;
-    case 'Queen':   Queen()(FROM_cell, ONTO_cell); break;
-    case 'Rook':     Rook()(FROM_cell, ONTO_cell); break;
-    case 'Bishop': Bishop()(FROM_cell, ONTO_cell); break;
-    case 'Knight': Knight()(FROM_cell, ONTO_cell); break;
+    case 'White King': return King('White').isMoveAvailable(FROM_cell, ONTO_cell);
+    case 'Black King': return King('Black').isMoveAvailable(FROM_cell, ONTO_cell);
 
-    case 'whitePawn': Pawn('white')(FROM_cell, ONTO_cell); break;
-    case 'blackPawn': Pawn('black')(FROM_cell, ONTO_cell)
+    case 'Queen':  return  Queen()(FROM_cell, ONTO_cell);
+    case 'Knight': return Knight()(FROM_cell, ONTO_cell);
+    case 'Rook':   return   Rook()(FROM_cell, ONTO_cell);
+    case 'Bishop': return Bishop()(FROM_cell, ONTO_cell);
+
+    case 'White Pawn': return Pawn('White').isMoveAvailable(FROM_cell, ONTO_cell);
+    case 'Black Pawn': return Pawn('Black').isMoveAvailable(FROM_cell, ONTO_cell)
   }
 }
 function Queen() {
   return function isMoveAvailable(FROM_cell, ONTO_cell) {
     return Rook()(FROM_cell, ONTO_cell) || Bishop()(FROM_cell, ONTO_cell)
   }
-}  //  other chessmen rules reside at the bottom of this file
+}  //  other chessmen rules reside at the bottom of this file, btw (by the way)
 
 function move(color) {
   console.log(board.boardDisplay() );
@@ -100,35 +102,59 @@ function move(color) {
   board.currentBoard[FROM] = ' ';
   board.currentBoard[ONTO] = chessman;
 
-  // castling (20 lines: from 104 to 123)
-  if (board.castlingOption[color] && ( (FROM == 'E8' && (ONTO == 'C8' || ONTO == 'G8') ) ||
-                                       (FROM == 'E1' && (ONTO == 'C1' || ONTO == 'G1') ) ) )
-  {
-    let rookBefore = ONTO == 'C8' ? 'A8' : ONTO == 'G8' ? 'H8' :
-                     ONTO == 'C1' ? 'A1' :                'H1' ;
-                     
-    let rookAfter = rookBefore == 'A8' ? 'D8' : rookBefore == 'H8' ? 'F8' :
-                    rookBefore == 'A1' ? 'D1' :                      'F1' ;
-    
-    let rook = board.currentBoard[rookBefore];
-
-    board.currentBoard[rookBefore] = ' ';
-    board.currentBoard[rookAfter]  = rook;
-  }
-
-  if (FROM == 'A8' || FROM == 'E8' || FROM == 'H8' || 
-      FROM == 'A1' || FROM == 'E1' || FROM == 'H1')
-  {
-    board.castlingOption[color] = false
+  switch (defineChessmanKind(chessman) ) {
+    case 'White Pawn': if (+ONTO[1] === 1) Pawn('White').transformPawn(ONTO); break;
+    case 'Black Pawn': if (+ONTO[1] === 8) Pawn('Black').transformPawn(ONTO); break;
+    case 'Black King': King('Black').castling(FROM, ONTO);                    break;
+    case 'White King': King('White').castling(FROM, ONTO)
   }
 
   console.log(board.boardDisplay() );
 }
 
-function King() {
-  return function isMoveAvailable(FROM_cell, ONTO_cell) {
+function King(color) {
+  function isMoveAvailable(FROM_cell, ONTO_cell) {
+    if (board.castlingOption[color] &&
+        ( (FROM_cell == 'E8' && (ONTO_cell == 'C8' || ONTO_cell == 'G8') ) ||
+          (FROM_cell == 'E1' && (ONTO_cell == 'C1' || ONTO_cell == 'G1') ) ) )
+    {
+      return true
+    }
+
+    if (Math.abs(FROM_cell.codePointAt() - ONTO_cell.codePointAt() ) === 1 &&
+        Math.abs(+FROM_cell[1]           - +ONTO_cell[1]           ) === 1)
+    {
+      return true
+    }
     
+    return false
   }
+
+  function castling(FROM_cell, ONTO_cell) {
+    if (board.castlingOption[color] &&
+        ( (FROM_cell == 'E8' && (ONTO_cell == 'C8' || ONTO_cell == 'G8') ) ||
+          (FROM_cell == 'E1' && (ONTO_cell == 'C1' || ONTO_cell == 'G1') ) ) )
+    {
+      let rookBefore = ONTO_cell == 'C8' ? 'A8' : ONTO_cell == 'G8' ? 'H8' :
+                       ONTO_cell == 'C1' ? 'A1' :                'H1' ;
+                      
+      let rookAfter = rookBefore == 'A8' ? 'D8' : rookBefore == 'H8' ? 'F8' :
+                      rookBefore == 'A1' ? 'D1' :                      'F1' ;
+      
+      let rook = board.currentBoard[rookBefore];
+
+      board.currentBoard[rookBefore] = ' ';
+      board.currentBoard[rookAfter]  = rook;
+    }
+
+    if (FROM_cell == 'A8' || FROM_cell == 'E8' || FROM_cell == 'H8' || 
+        FROM_cell == 'A1' || FROM_cell == 'E1' || FROM_cell == 'H1')
+    {
+      board.castlingOption[color] = false
+    }
+  }
+  
+  return { isMoveAvailable, castling }
 }
 
 function Rook() {
@@ -141,6 +167,7 @@ function Rook() {
         {
           if (board.currentBoard[`${FROM_cell[0]}${i}`] !== ' ') return false;
         }
+
         return true
       }
       //                                 vertical downward
@@ -150,6 +177,7 @@ function Rook() {
         {
           if (board.currentBoard[`${FROM_cell[0]}${i}`] !== ' ') return false;
         }
+        
         return true
     }
     //                                            horizontal
@@ -219,12 +247,69 @@ function Bishop() {
 
 function Knight() {
   return function isMoveAvailable(FROM_cell, ONTO_cell) {
-    
+    if (Math.abs(FROM_cell.codePointAt() - ONTO_cell.codePointAt() ) === 1  &&
+        Math.abs(+FROM_cell[1]           - +ONTO_cell[1]           ) === 2  ||
+        Math.abs(FROM_cell.codePointAt() - ONTO_cell.codePointAt() ) === 2  &&
+        Math.abs(+FROM_cell[1]           - +ONTO_cell[1]           ) === 1)
+    {
+      return true
+    }
+    return false
   }
 }
 
 function Pawn(color) {
-  return function isMoveAvailable(FROM_cell, ONTO_cell) {
-    
+  function isMoveAvailable(FROM_cell, ONTO_cell) {
+    if (color == 'White') {
+      if (board.currentBoard[ONTO_cell] !== ' ' && +FROM_cell[1] - +ONTO_cell[1] === 1 &&
+          Math.abs(FROM_cell.codePointAt() - ONTO_cell.codePointAt() ) === 1)
+      {
+        return true
+      }
+      if (FROM_cell[0] == ONTO_cell[0] && +FROM_cell[1] - +ONTO_cell[1] === 1) return true;
+
+      return false
+    }
+    // finally, Black case
+      if (board.currentBoard[ONTO_cell] !== ' ' && +ONTO_cell[1] - +FROM_cell[1] === 1 &&
+          Math.abs(FROM_cell.codePointAt() - ONTO_cell.codePointAt() ) === 1)
+      {
+        return true
+      }
+      if (FROM_cell[0] == ONTO_cell[0] && +ONTO_cell[1] - +FROM_cell[1] === 1) return true;
+
+      return false
   }
+
+  function transformPawn(ONTO_cell) {
+    if (!Object.values(board.currentBoard).includes(color == 'White' ? '♛' : '♕') ) {
+      board.currentBoard[ONTO_cell] =               color == 'White' ? '♛' : '♕';
+    }
+    else color == 'White' ? nonQueenTransformation('♜', '♝', '♞') :
+                            nonQueenTransformation('♖', '♗', '♘');
+
+    function nonQueenTransformation(rook, bishop, knight) {
+      soloOrPair(rook) || soloOrPair(bishop) || soloOrPair(knight);
+        
+      function soloOrPair(chessmanKind) {
+        if (!Object.values(board.currentBoard).includes(chessmanKind) ) {
+          board.currentBoard[ONTO_cell] = chessmanKind;
+
+          return true
+        }
+
+        else if (Object.values(board.currentBoard).indexOf(chessmanKind) ===
+                 Object.values(board.currentBoard).lastIndexOf(chessmanKind) )
+        {
+          board.currentBoard[ONTO_cell] = chessmanKind;
+
+          return true
+        }
+
+        return false;  //  alive pair means no slot for transform into that chessmand kind
+      }
+    }
+  }
+
+  return { isMoveAvailable, transformPawn }
 }
